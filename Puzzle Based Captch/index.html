@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sliding Puzzle CAPTCHA</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        #captcha-container {
+            text-align: center;
+        }
+        #captcha-canvas {
+            border: 2px solid #333;
+            background-color: white;
+            cursor: pointer;
+        }
+        #controls {
+            margin-top: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 0 10px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #message {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div id="captcha-container">
+        <h2>Slide the tiles to arrange numbers 1-8 in order</h2>
+        <canvas id="captcha-canvas" width="300" height="300"></canvas>
+        <div id="controls">
+            <button onclick="resetPuzzle()">Reset</button>
+        </div>
+        <p id="message">Click a tile next to the empty space to slide it.</p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('captcha-canvas');
+        const ctx = canvas.getContext('2d');
+        const tileSize = 100;
+        const gridSize = 3;
+        let tiles = [];
+        let emptyTile = { row: 2, col: 2 };
+
+        // Initialize tiles (1-8 and empty)
+        function initTiles() {
+            tiles = [];
+            for (let i = 0; i < gridSize * gridSize - 1; i++) {
+                tiles[i] = i + 1;
+            }
+            tiles.push(null); // Empty tile
+            shuffleTiles();
+        }
+
+        // Shuffle tiles (ensuring solvability)
+        function shuffleTiles() {
+            for (let i = 0; i < 100; i++) {
+                const neighbors = getMovableTiles();
+                const randomNeighbor = neighbors[Math.floor(Math.random() * neighbors.length)];
+                swapTiles(emptyTile, randomNeighbor);
+            }
+        }
+
+        // Get tiles adjacent to empty tile
+        function getMovableTiles() {
+            const { row, col } = emptyTile;
+            const neighbors = [];
+            if (row > 0) neighbors.push({ row: row - 1, col });
+            if (row < gridSize - 1) neighbors.push({ row: row + 1, col });
+            if (col > 0) neighbors.push({ row, col: col - 1 });
+            if (col < gridSize - 1) neighbors.push({ row, col: col + 1 });
+            return neighbors;
+        }
+
+        // Swap two tiles
+        function swapTiles(pos1, pos2) {
+            const index1 = pos1.row * gridSize + pos1.col;
+            const index2 = pos2.row * gridSize + pos2.col;
+            [tiles[index1], tiles[index2]] = [tiles[index2], tiles[index1]];
+            emptyTile = pos2;
+            drawPuzzle();
+            checkPuzzle();
+        }
+
+        // Draw puzzle on canvas
+        function drawPuzzle() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let row = 0; row < gridSize; row++) {
+                for (let col = 0; col < gridSize; col++) {
+                    const tile = tiles[row * gridSize + col];
+                    const x = col * tileSize;
+                    const y = row * tileSize;
+                    if (tile !== null) {
+                        ctx.fillStyle = '#007bff';
+                        ctx.fillRect(x + 5, y + 5, tileSize - 10, tileSize - 10);
+                        ctx.fillStyle = 'white';
+                        ctx.font = '40px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(tile, x + tileSize / 2, y + tileSize / 2);
+                    }
+                    ctx.strokeStyle = '#333';
+                    ctx.strokeRect(x, y, tileSize, tileSize);
+                }
+            }
+        }
+
+        // Check if puzzle is solved
+        function checkPuzzle() {
+            const message = document.getElementById('message');
+            let solved = true;
+            for (let i = 0; i < tiles.length - 1; i++) {
+                if (tiles[i] !== i + 1) {
+                    solved = false;
+                    break;
+                }
+            }
+            if (solved && tiles[tiles.length - 1] === null) {
+                message.textContent = 'CAPTCHA Passed! Puzzle solved.';
+                message.style.color = 'green';
+            } else {
+                message.textContent = 'Click a tile next to the empty space to slide it.';
+                message.style.color = 'black';
+            }
+        }
+
+        // Handle canvas click
+        canvas.addEventListener('click', (event) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            const col = Math.floor(x / tileSize);
+            const row = Math.floor(y / tileSize);
+            const clickedPos = { row, col };
+            const movableTiles = getMovableTiles();
+            if (movableTiles.some(pos => pos.row === clickedPos.row && pos.col === clickedPos.col)) {
+                swapTiles(emptyTile, clickedPos);
+            }
+        });
+
+        // Reset puzzle
+        function resetPuzzle() {
+            initTiles();
+            drawPuzzle();
+            document.getElementById('message').textContent = 'Click a tile next to the empty space to slide it.';
+            document.getElementById('message').style.color = 'black';
+        }
+
+        // Initialize puzzle
+        initTiles();
+        drawPuzzle();
+    </script>
+</body>
+</html>

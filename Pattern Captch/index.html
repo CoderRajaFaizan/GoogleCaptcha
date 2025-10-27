@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pattern-Based CAPTCHA</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <style>
+        body {
+            background: linear-gradient(135deg, #e0e7ff, #f3e8ff);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+        .captcha-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            max-width: 500px;
+            width: 100%;
+            margin: 1rem;
+        }
+        canvas {
+            border: 3px solid #4b5e8e;
+            border-radius: 10px;
+            background: #f8fafc;
+            transition: transform 0.3s ease;
+        }
+        canvas:hover {
+            transform: scale(1.02);
+        }
+        .btn-3d {
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            border-radius: 25px;
+            border: none;
+            position: relative;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        .btn-primary {
+            background: linear-gradient(to bottom, #60a5fa, #3b82f6);
+            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4), inset 0 -2px 5px rgba(0, 0, 0, 0.2);
+        }
+        .btn-secondary {
+            background: linear-gradient(to bottom, #9ca3af, #6b7280);
+            box-shadow: 0 5px 15px rgba(107, 114, 128, 0.4), inset 0 -2px 5px rgba(0, 0, 0, 0.2);
+        }
+        .btn-3d:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+        .btn-3d:active {
+            transform: translateY(2px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2), inset 0 2px 5px rgba(0, 0,0.3);
+        }
+        #message {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #475569;
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        h2 {
+            color: #1e3a8a;
+            font-weight: bold;
+        }
+        p {
+            color: #475569;
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="captcha-container">
+        <h2 class="text-center mb-4">Pattern-Based CAPTCHA</h2>
+        <p class="text-center mb-4">Click on all the <strong>circles</strong> to pass the CAPTCHA.</p>
+        <canvas id="captchaCanvas" width="400" height="300" class="d-block mx-auto mb-4"></canvas>
+        <div class="d-flex justify-content-center gap-3">
+            <button class="btn btn-primary btn-3d" onclick="checkCaptcha()">Submit</button>
+            <button class="btn btn-secondary btn-3d" onclick="resetCaptcha()">Reset</button>
+        </div>
+        <div id="message" class="text-center mt-3"></div>
+    </div>
+
+    <!-- Bootstrap 5 JS (with Popper.js) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <script>
+        const canvas = document.getElementById('captchaCanvas');
+        const ctx = canvas.getContext('2d');
+        let shapes = [];
+        let selectedShapes = [];
+
+        function generateShapes() {
+            shapes = [];
+            const shapeCount = 12;
+            const shapeTypes = ['circle', 'square', 'triangle', 'pentagon'];
+            for (let i = 0; i < shapeCount; i++) {
+                const x = Math.random() * (canvas.width - 50) + 25;
+                const y = Math.random() * (canvas.height - 50) + 25;
+                const type = shapeTypes[Math.floor(Math.random() * shapeTypes.length)];
+                shapes.push({ x, y, type, selected: false });
+            }
+            drawShapes();
+        }
+
+        function drawShapes() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            shapes.forEach(shape => {
+                ctx.save();
+                if (shape.selected) {
+                    ctx.translate(shape.x, shape.y);
+                    ctx.scale(1.1, 1.1);
+                    ctx.translate(-shape.x, -shape.y);
+                }
+
+                let gradient;
+                if (shape.type === 'circle') {
+                    gradient = ctx.createRadialGradient(shape.x - 10, shape.y - 10, 5, shape.x, shape.y, 20);
+                } else {
+                    gradient = ctx.createLinearGradient(shape.x - 20, shape.y - 20, shape.x + 20, shape.y + 20);
+                }
+                gradient.addColorStop(0, shape.selected ? 'rgba(0, 255, 0, 0.8)' : 'rgba(0, 0, 255, 0.8)');
+                gradient.addColorStop(1, shape.selected ? 'rgba(0, 200, 0, 0.5)' : 'rgba(0, 0, 200, 0.5)');
+
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+                ctx.shadowBlur = 5;
+                ctx.shadowOffsetX = 2;
+                ctx.shadowOffsetY = 2;
+
+                ctx.beginPath();
+                if (shape.type === 'circle') {
+                    ctx.arc(shape.x, shape.y, 20, 0, Math.PI * 2);
+                } else if (shape.type === 'square') {
+                    ctx.rect(shape.x - 20, shape.y - 20, 40, 40);
+                } else if (shape.type === 'triangle') {
+                    ctx.moveTo(shape.x, shape.y - 20);
+                    ctx.lineTo(shape.x - 20, shape.y + 20);
+                    ctx.lineTo(shape.x + 20, shape.y + 20);
+                    ctx.closePath();
+                } else if (shape.type === 'pentagon') {
+                    const sides = 5;
+                    const radius = 20;
+                    ctx.moveTo(shape.x + radius * Math.cos(0), shape.y + radius * Math.sin(0));
+                    for (let i = 1; i <= sides; i++) {
+                        ctx.lineTo(
+                            shape.x + radius * Math.cos((i * 2 * Math.PI) / sides),
+                            shape.y + radius * Math.sin((i * 2 * Math.PI) / sides)
+                        );
+                    }
+                    ctx.closePath();
+                }
+                ctx.fillStyle = gradient;
+                ctx.fill();
+                ctx.strokeStyle = '#000';
+                ctx.stroke();
+                ctx.restore();
+            });
+        }
+
+        function checkCaptcha() {
+            const message = document.getElementById('message');
+            const anySelected = shapes.some(shape => shape.selected);
+            if (!anySelected) {
+                message.textContent = 'Please select at least one shape.';
+                message.style.color = 'red';
+                setTimeout(() => {
+                    resetCaptcha();
+                }, 1500);
+                return;
+            }
+
+            const circlesSelected = shapes.every(shape => 
+                shape.type === 'circle' ? shape.selected : !shape.selected
+            );
+            if (circlesSelected && shapes.some(shape => shape.type === 'circle')) {
+                message.textContent = 'CAPTCHA passed!';
+                message.style.color = 'green';
+            } else {
+                message.textContent = 'CAPTCHA failed. Please select only the circles. Refreshing...';
+                message.style.color = 'red';
+                setTimeout(() => {
+                    resetCaptcha();
+                }, 1500);
+            }
+        }
+
+        function resetCaptcha() {
+            selectedShapes = [];
+            document.getElementById('message').textContent = '';
+            generateShapes();
+        }
+
+        canvas.addEventListener('click', (event) => {
+            const rect = canvas.getBoundingClientRect();
+            const clickX = event.clientX - rect.left;
+            const clickY = event.clientY - rect.top;
+
+            shapes.forEach(shape => {
+                if (shape.type === 'circle') {
+                    const dist = Math.sqrt((clickX - shape.x) ** 2 + (clickY - shape.y) ** 2);
+                    if (dist < 20) {
+                        shape.selected = !shape.selected;
+                    }
+                } else if (shape.type === 'square') {
+                    if (clickX > shape.x - 20 && clickX < shape.x + 20 &&
+                        clickY > shape.y - 20 && clickY < shape.y + 20) {
+                        shape.selected = !shape.selected;
+                    }
+                } else if (shape.type === 'triangle') {
+                    if (clickX > shape.x - 20 && clickX < shape.x + 20 &&
+                        clickY > shape.y - 20 && clickY < shape.y + 20) {
+                        shape.selected = !shape.selected;
+                    }
+                } else if (shape.type === 'pentagon') {
+                    if (clickX > shape.x - 20 && clickX < shape.x + 20 &&
+                        clickY > shape.y - 20 && clickY < shape.y + 20) {
+                        shape.selected = !shape.selected;
+                    }
+                }
+            });
+            drawShapes();
+        });
+
+        // Initialize CAPTCHA
+        generateShapes();
+    </script>
+</body>
+</html>

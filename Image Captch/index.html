@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image-Based CAPTCHA</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        #captcha-container {
+            text-align: center;
+        }
+        #captcha-canvas {
+            border: 2px solid #333;
+            background-color: white;
+        }
+        #controls {
+            margin-top: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 0 10px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #message {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div id="captcha-container">
+        <h2>Rotate the image to its correct orientation</h2>
+        <canvas id="captcha-canvas" width="300" height="300"></canvas>
+        <div id="controls">
+            <button onclick="rotateImage(-90)">Rotate Left</button>
+            <button onclick="rotateImage(90)">Rotate Right</button>
+            <button onclick="refreshCaptcha()">Refresh</button>
+        </div>
+        <p id="message">Loading image...</p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('captcha-canvas');
+        const ctx = canvas.getContext('2d');
+        let currentAngle = 0;
+        const correctAngle = 0; // Correct orientation is 0 degrees
+        let imageLoaded = false;
+        let img = new Image();
+
+        function loadNewImage() {
+            // Append a timestamp to force a new image
+            img.src = `https://picsum.photos/300/300?random=${new Date().getTime()}`;
+            img.onload = function() {
+                imageLoaded = true;
+                // Randomly rotate image (90°, 180°, or 270°)
+                const angles = [90, 180, 270];
+                currentAngle = angles[Math.floor(Math.random() * angles.length)];
+                drawImage();
+                document.getElementById('message').textContent = 'Rotate the image to its upright position.';
+                document.getElementById('message').style.color = 'black';
+            };
+            img.onerror = function() {
+                imageLoaded = false;
+                document.getElementById('message').textContent = 'Failed to load image. Please try refreshing again.';
+                document.getElementById('message').style.color = 'red';
+            };
+        }
+
+        function drawImage() {
+            if (!imageLoaded) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.rotate((currentAngle * Math.PI) / 180);
+            ctx.drawImage(img, -150, -150, 300, 300);
+            ctx.restore();
+        }
+
+        function rotateImage(angle) {
+            if (!imageLoaded) return;
+            currentAngle = (currentAngle + angle) % 360;
+            if (currentAngle < 0) currentAngle += 360;
+            drawImage();
+            checkCaptcha();
+        }
+
+        function checkCaptcha() {
+            const message = document.getElementById('message');
+            if (currentAngle === correctAngle) {
+                message.textContent = 'CAPTCHA Passed! Image is upright.';
+                message.style.color = 'green';
+            } else {
+                message.textContent = 'Incorrect orientation. Keep rotating.';
+                message.style.color = 'red';
+            }
+        }
+
+        function refreshCaptcha() {
+            imageLoaded = false;
+            document.getElementById('message').textContent = 'Loading new image...';
+            document.getElementById('message').style.color = 'black';
+            loadNewImage();
+        }
+
+        // Initial image load
+        loadNewImage();
+    </script>
+</body>
+</html>
